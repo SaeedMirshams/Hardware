@@ -19,7 +19,8 @@ obtained from http://libusb.sourceforge.net/.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <usb.h>    /* this is libusb, see http://libusb.sourceforge.net/ */
+#include <lusb0_usb.h>    /* this is libusb, see http://libusb.sourceforge.net/ */
+//#include <usb.h>    /* this is libusb, see http://libusb.sourceforge.net/ */
 
 #define USBDEV_SHARED_VENDOR    0x16C0  /* VOTI */
 #define USBDEV_SHARED_PRODUCT   0x05DC  /* Obdev's free shared PID */
