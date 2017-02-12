@@ -1,0 +1,12 @@
+VERSION:3 SOURCE_TIMESTAMP:4A397168
+NODE:I LEVEL:0 LINE:25 "D:\cvavr2\inc\mega8.h"
+NODE:I LEVEL:0 LINE:27 "D:\cvavr2\inc\delay.h"
+NODE:I LEVEL:0 LINE:30 "D:\cvavr2\inc\alcd.h"
+NODE:T LEVEL:0 LINE:34 "byte"
+NODE:C LEVEL:0 LINE:38 "char_table -> FLASH"
+NODE:F LEVEL:0 LINE:89 "timer0_ovf_isr(void)"
+NODE:F LEVEL:0 LINE:96 "test(void)"
+NODE:F LEVEL:0 LINE:102 "define_char(flash byte * pc,byte char_code)"
+NODE:M LEVEL:0 LINE:110 "ADC_VREF_TYPE"
+NODE:F LEVEL:0 LINE:113 "read_adc(unsigned char adc_input)"
+NODE:F LEVEL:0 LINE:128 "main(void)"
