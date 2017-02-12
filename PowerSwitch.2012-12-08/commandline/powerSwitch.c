@@ -22,8 +22,11 @@ obtained from http://libusb.sourceforge.net/.
 #include <lusb0_usb.h>    /* this is libusb, see http://libusb.sourceforge.net/ */
 //#include <usb.h>    /* this is libusb, see http://libusb.sourceforge.net/ */
 
-#define USBDEV_SHARED_VENDOR    0x16C0  /* VOTI */
-#define USBDEV_SHARED_PRODUCT   0x05DC  /* Obdev's free shared PID */
+#define USBDEV_SHARED_VENDOR    0x04F3  /* VOTI */
+#define USBDEV_SHARED_PRODUCT   0x0235  /* Obdev's free shared PID */
+
+//#define USBDEV_SHARED_VENDOR    0x16C0  /* VOTI */
+//#define USBDEV_SHARED_PRODUCT   0x05DC  /* Obdev's free shared PID */
 /* Use obdev's generic shared VID/PID pair and follow the rules outlined
  * in firmware/usbdrv/USBID-License.txt.
  */
@@ -88,14 +91,18 @@ usb_dev_handle      *handle = NULL;
 int                 errorCode = USB_ERROR_NOTFOUND;
 static int          didUsbInit = 0;
 
+	fprintf(stderr,"Init...\r");
     if(!didUsbInit){
         didUsbInit = 1;
         usb_init();
     }
+	fprintf(stderr,"Init OK\n");
     usb_find_busses();
     usb_find_devices();
     for(bus=usb_get_busses(); bus; bus=bus->next){
+	 fprintf(stderr,"%d",bus);
         for(dev=bus->devices; dev; dev=dev->next){
+		fprintf(stderr,"dev->descriptor.idVendor:%d dev->descriptor.idProduct ==%d \n",dev->descriptor.idVendor,dev->descriptor.idProduct);
             if(dev->descriptor.idVendor == vendor && dev->descriptor.idProduct == product){
                 char    string[256];
                 int     len;
