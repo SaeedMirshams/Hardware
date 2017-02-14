@@ -1,0 +1,13 @@
+﻿Build started 2017/2/12 8:29:27 AM.
+     1>Project "E:\HwProgramming\Hardware\TestUsb\powerSwitch\powerSwitch.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         D:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\CL.exe /c /ZI /nologo /W3 /WX- /Od /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"x64\Debug\\" /Fd"x64\Debug\vc140.pdb" /Gd /TP /errorReport:prompt powerSwitch.cpp
+         powerSwitch.cpp
+       Link:
+         D:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"E:\HwProgramming\Hardware\TestUsb\powerSwitch\x64\Debug\powerSwitch.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"E:\HwProgramming\Hardware\TestUsb\powerSwitch\x64\Debug\powerSwitch.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\HwProgramming\Hardware\TestUsb\powerSwitch\x64\Debug\powerSwitch.lib" /MACHINE:X64 libusb.lib x64\Debug\powerSwitch.obj
+         powerSwitch.vcxproj -> E:\HwProgramming\Hardware\TestUsb\powerSwitch\x64\Debug\powerSwitch.exe
+     1>Done Building Project "E:\HwProgramming\Hardware\TestUsb\powerSwitch\powerSwitch.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.83

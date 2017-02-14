@@ -100,9 +100,7 @@ static int          didUsbInit = 0;
     usb_find_busses();
     usb_find_devices();
     for(bus=usb_get_busses(); bus; bus=bus->next){
-	 fprintf(stderr,"%d",bus);
         for(dev=bus->devices; dev; dev=dev->next){
-		fprintf(stderr,"dev->descriptor.idVendor:%d dev->descriptor.idProduct ==%d \n",dev->descriptor.idVendor,dev->descriptor.idProduct);
             if(dev->descriptor.idVendor == vendor && dev->descriptor.idProduct == product){
                 char    string[256];
                 int     len;

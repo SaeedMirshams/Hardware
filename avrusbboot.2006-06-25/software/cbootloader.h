@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "usb.h"
+#include "lusb0_usb.h"
 #include "cpage.h"
 
 #define USBDEV_SHARED_VENDOR    0x16C0  /* VOTI */
