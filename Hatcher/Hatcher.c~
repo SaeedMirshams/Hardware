@@ -16,7 +16,7 @@ For Hatching
 
 Chip type               : ATmega8
 Program type            : Application
-AVR Core Clock frequency: 4.000000 MHz
+AVR Core Clock frequency: 8.000000 MHz
 Memory model            : Small
 External RAM size       : 0
 Data Stack size         : 256
@@ -29,7 +29,7 @@ Data Stack size         : 256
 // Alphanumeric LCD functions
 #include <alcd.h>
 
-
+#define STATE_NORMAL 0
 
 typedef unsigned char byte;
 
@@ -37,14 +37,14 @@ typedef unsigned char byte;
 // arrow that points to the top right corner
 flash byte char_table[6][8]={
 {
-0b11111111,
-0b10001110,
-0b10000100,
 0b10000000,
 0b10000000,
 0b10000000,
 0b10000000,
-0b10000000
+0b10000000,
+0b10000000,
+0b10010101,
+0b10111111
 },{
 0b10000000,
 0b11111111,
@@ -125,9 +125,25 @@ return ADCW;
 
 // Declare your global variables here
 
+long int clock=0;
+eeprom long int start_date=0;
+eeprom int temp1=0;
+eeprom int temp1analog=0;
+eeprom int temp2=10;
+eeprom int temp2analog=2048;
+
+int readkey()
+{
+
+
+return PINC;
+}
+
+
 void main(void)
 {
 int i;
+int state=STATE_NORMAL;
 // Input/Output Ports initialization
 // Port B initialization
 // Func7=Out Func6=Out Func5=Out Func4=Out Func3=In Func2=Out Func1=Out Func0=Out 
@@ -240,11 +256,27 @@ for(i=0;i<32;i++)
  define_char(char_table[i%6],i);
 }
 while (1)
+      { 
+      i++;
+      if(i>50)
+      i=0;
+      PORTD.0=0;
+      delay_ms(500);
+      switch(state)
       {
+      case STATE_NORMAL:
+       showNormal();
+       break;
+       default:
+       
+      }
+      
       lcd_gotoxy(0,0);
       lcd_puts("SALAM");
-      for(i=0;i<100;i++)
-       lcd_putchar(i%6);
-      delay_ms(1000);
+        lcd_putchar(i);
+      //for(i=0;i<100;i++)      
+
+      PORTD.0=1;
+      delay_ms(500);
       }
 }

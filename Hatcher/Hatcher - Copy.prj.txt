@@ -33,7 +33,7 @@ PageIndex2=2
 RebuildAll=0
 LinkageInformationPresent=1
 Chip=ATmega8
-CPUClock=8000000
+CPUClock=4000000
 MemoryModel=1
 OptimizeSize=1
 OptimizationLevel=2
@@ -122,7 +122,7 @@ WarningExternalDeclaredNeverDefined=1
 WarningUnknownPragma=1
 DebugBootLoader=0
 WatchAVR8LAutoVariables=0
-Build=24
+Build=20
 UseEEPROMLocation0=1
 [Assembler]
 OutputFormat=1

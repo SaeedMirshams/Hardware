@@ -1,7 +1,7 @@
 RAM Allocation
 Variable                                                          Address   Size
 --------------------------------------------------------------------------------
-_base_y                                                           0x0166       4
+_base_y                                                           0x016D       4
 
 EEPROM Allocation
 Variable                                                          Address   Size
