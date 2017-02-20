@@ -1,15 +1,25 @@
 RAM Allocation
 Variable                                                          Address   Size
 --------------------------------------------------------------------------------
-_base_y                                                           0x016D       4
+clock                                                             0x0167       4
+_seed                                                             0x016B       4
+_base_y                                                           0x016F       4
 
 EEPROM Allocation
 Variable                                                          Address   Size
 --------------------------------------------------------------------------------
+start_date                                                        0x0000       4
+temp1                                                             0x0004       2
+temp1analog                                                       0x0006       2
+temp2                                                             0x0008       2
+temp2analog                                                       0x000A       2
 
 Register Allocation
 Variable                                                          Register  Size
 --------------------------------------------------------------------------------
-_lcd_x                                                            R5           1
-_lcd_y                                                            R4           1
-_lcd_maxx                                                         R7           1
+tick                                                              R4,R5        2
+currentTemperature                                                R6,R7        2
+lastkey                                                           R8,R9        2
+_lcd_x                                                            R11          1
+_lcd_y                                                            R10          1
+_lcd_maxx                                                         R13          1
