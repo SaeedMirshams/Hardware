@@ -32,6 +32,22 @@ Data Stack size         : 256
 #include <alcd.h>
 
 #define STATE_NORMAL 0
+#define STATE_MENU   1
+
+#define STATE_CLOCK  10
+#define STATE_MATEMP 20
+#define STATE_MITEMP 30
+#define STATE_ROTATT 40
+#define STATE_ROTATP 50
+#define STATE_SYCHK  60
+#define STATE_ATEMP1 70
+#define STATE_ATEMP2 80
+
+#define OK 1
+#define CANCEL 2
+#define UP 4
+#define DOWN 8
+
 
 typedef unsigned char byte;
 /*
@@ -56,23 +72,42 @@ address=(char_code<<3)|0x40;
 for (i=0; i<8; i++) lcd_write_byte(address++,*pc++);
 }
 */
+#define OFF   0
+#define LEFT  1
+#define RIGHT 2
+
+#define ON 1
+
 int tick;
 long int clock=0;
 int currentTemperature;
-eeprom long int start_date=0;
+byte lastdirection=OFF;
+byte heaterstate=OFF;
+
 eeprom int temp1;
 eeprom int temp1analog;
 eeprom int temp2;
 eeprom int temp2analog;
-eeprom int Mintemp=36;
-eeprom int Maxtemp=37;
+eeprom int Mintemp=0;
+eeprom int Maxtemp=1;
+eeprom long int rotTime=30;//15*60;
+eeprom long int rotperiod=60;//3600;
+flash char *MenuItems[]={
+"Clock",
+"Max Temperature",
+"Min Temperature",
+"Rotation Time",
+"Rotation Period",
+"System Check",
+"adj Temp.1",
+"adj Temp.2",
+};
 
-void showNormal()
+
+void translateTime(long int clock,char* timstr)
 {
 int day,hour,minut,second;
-int tim=clock;
-float degtemp=0.0;
-char timstr[]="99 24:60:60";
+long int tim=clock;
 second=tim%60;
   tim=tim/60;
   minut=tim%60;
@@ -80,19 +115,69 @@ second=tim%60;
   hour=tim%24;
   tim=tim/24;
   day=tim;
-degtemp= (float)(currentTemperature- temp1analog)*(temp2-temp1)/(float)(temp2analog-temp1analog)-temp1;
+ sprintf(timstr,"%2d %2d:%2d:%2d ",day,hour,minut,second);
+}
 
-sprintf(timstr,"%2d %2d:%2d:%2d ",day,hour,minut,second);
+void translateTemp(int temp,char* str)
+{
+float degtemp= (float)(temp- temp1analog)*(temp2-temp1)/(float)(temp2analog-temp1analog)-temp1;
 
+ftoa(degtemp,2,str);
+
+}
+
+void clearLine(byte i)
+{
+lcd_gotoxy(0,i);
+lcd_putsf("                ");
+lcd_gotoxy(0,i);
+}
+
+
+void showNormalLine1()
+{
+char timstr[]="99 24:60:60";
+translateTime(clock,timstr);
 lcd_gotoxy(0,0);
 lcd_puts(timstr);
 
-ftoa(degtemp,2,timstr);
+translateTemp(currentTemperature,timstr);
 lcd_puts(timstr);
 lcd_puts(" C");
 lcd_gotoxy(0,1);
 
 }
+
+
+void showNormalLine2()
+{
+clearLine(1);
+switch(lastdirection)
+{
+ case OFF:
+  lcd_puts("R:OFF ");
+  break;
+ case LEFT:
+  lcd_puts("R:LEF ");
+  break;
+ case RIGHT:
+  lcd_puts("R:RIG ");
+  break;
+}
+
+switch(heaterstate)
+{
+ case OFF:
+  lcd_puts("H:OF ");
+  break;
+ case ON:
+  lcd_puts("H:ON ");
+  break;
+}
+
+
+}
+
 
 // Timer 0 overflow interrupt service routine
 interrupt [TIM0_OVF] void timer0_ovf_isr(void)
@@ -132,6 +217,7 @@ ADCSRA|=0x10;
 return ADCW;
 }
 
+
 // Declare your global variables here
 
 
@@ -139,7 +225,7 @@ int lastkey=15;
 byte readkey()
 {
 byte result=0;
-byte newkey = ~((PINC & 0b01111000)>>3)&0b00001111;
+byte newkey = ~(PINC>>3)&0b00001111;
 if(newkey==lastkey)
 {
  result=0;
@@ -153,15 +239,58 @@ return result;
 }
 
 
+void Heater(byte state)
+{
+ heaterstate=state;
+ PORTD.1=state;
+}
+
+
+
+flash long int clockratios[]={24*3600,3600,60,1};
+
+
+void turn(byte direction)
+{
+ if(lastdirection!=direction)
+  {
+    PORTD.2=0;
+    PORTD.3=0;
+    delay_ms(1000); 
+  }
+  
+switch(direction)
+{
+ case OFF:
+    PORTD.2=0;
+    PORTD.3=0;
+ break;
+ case LEFT:
+    PORTD.2=1;
+    PORTD.3=0;
+ break;
+ case RIGHT:
+    PORTD.2=0;
+    PORTD.3=1;
+ break;
+}  
+lastdirection=direction;
+
+}
+
 void main(void)
 {
 int state=STATE_NORMAL;
 
-start_date=0;
 temp1=0;
 temp1analog=0;
 temp2=500;
 temp2analog=1024;
+Mintemp=73;
+Maxtemp=75;
+rotTime=30;//15*60;
+rotperiod=60;//3600;
+
 
 
 // Input/Output Ports initialization
@@ -265,33 +394,357 @@ TWCR=0x00;
 // D6 - PORTB Bit 6
 // D7 - PORTB Bit 7
 // Characters/line: 16
-lcd_init(16*2);
+lcd_init(16);
 // Global enable interrupts
 lcd_clear();
-_lcd_write_data (LCD_CURSOR_ON);
      
-      
 #asm("sei")
-
+ _lcd_write_data (LCD_CURSOR_OFF);
 while (1)
       {
-      int key;
-      char str[]="00000000";
-      currentTemperature=read_adc(0); 
-      PORTD.0=!PORTD.0;
+      byte key;
+      byte menuindex;
+      long pasang;
+      char str[16];
       
+
+      PORTD.0=!PORTD.0;
+      currentTemperature=read_adc(0);
+      if(currentTemperature>Maxtemp)
+      {
+      Heater(OFF);
+      }
+      else if(currentTemperature<Mintemp)
+      {
+      Heater(ON);
+      }
+      
+      if(rotperiod<=0)
+       rotperiod=3600;
+       
+
+     { 
+       int r= clock%rotperiod;
+       int d=clock/rotperiod%2;
+       if(r<rotTime)
+       {
+        if(d==0)
+         {
+          turn(RIGHT);
+         }
+         else
+         {
+           turn(LEFT);
+         }
+       }
+       else
+       {
+        turn(OFF);
+       }
+      } 
+      key=readkey();
       switch(state)
       {
       case STATE_NORMAL:
-       showNormal();
+       showNormalLine1();
+       showNormalLine2();
+       if(key==OK)
+       {
+       state=STATE_MENU;
+       menuindex=0;        
+       }
        break;
+       case STATE_MENU:
+        showNormalLine1();
+        clearLine(1);
+        lcd_putsf(MenuItems[menuindex]);
+       switch(key)
+       {
+       case OK:
+        state=10*(menuindex+1);
+        menuindex=0;
+        pasang=0;
+        _lcd_write_data (LCD_CURSOR_ON);
+        break;
+        case CANCEL:
+        state=STATE_NORMAL;
+        _lcd_write_data (LCD_CURSOR_OFF);
+        break;        
+       case UP:
+        if(menuindex==0)
+         menuindex=7;
+        else
+         menuindex--;
+        break;
+       case DOWN:
+        menuindex++;
+        if(menuindex>7)
+        menuindex=0;
+        break;        
+       }
+       break;
+       
+       case STATE_CLOCK:
+        showNormalLine1();
+        clearLine(1);
+        translateTime(clock+pasang,str);
+        lcd_puts(str);
+        lcd_gotoxy(menuindex*3+1,1);
+       switch(key)
+       {
+       case OK:
+        menuindex++;
+        if(menuindex>3)
+        menuindex=0;
+        clock+=pasang;
+        pasang=0;
+        break;
+        case CANCEL:
+        menuindex=0;
+        state=STATE_MENU;
+       _lcd_write_data (LCD_CURSOR_OFF);        
+        break;        
+       case UP:
+        pasang+=clockratios[menuindex];
+        break;        
+       case DOWN:
+        pasang-=clockratios[menuindex];
+        break;
+       }
+       
+       break;
+       case STATE_MATEMP:
+        showNormalLine1();
+        clearLine(1);
+        translateTemp(Maxtemp+pasang,str);
+        lcd_puts(str);
+       switch(key)
+       {
+       case OK:
+       if(pasang!=0)
+       {
+        Maxtemp+=pasang;
+       }
+       case CANCEL:
+        state=STATE_MENU;
+        menuindex=STATE_MATEMP/10-1;
+        _lcd_write_data (LCD_CURSOR_OFF);        
+        break;        
+       case UP:
+        pasang++;
+        break;        
+       case DOWN:
+        pasang--;
+        break;
+       }
+        
+       break;
+
+       case STATE_MITEMP:
+        showNormalLine1();
+        clearLine(1);
+        translateTemp(Mintemp+pasang,str);
+        lcd_puts(str);
+       switch(key)
+       {
+       case OK:
+       if(pasang!=0)
+       {
+        Mintemp+=pasang;
+       }
+        pasang=0;
+        case CANCEL:
+        state=STATE_MENU;
+        menuindex=STATE_MITEMP/10-1;
+        break;        
+       case UP:
+        pasang++;
+        break;        
+       case DOWN:
+        pasang--;
+        break;
+       }
+        
+       break;
+
+       case STATE_ROTATT:
+        showNormalLine1();
+        clearLine(1);
+        translateTime(rotTime+pasang,str);
+        lcd_puts(str);
+        lcd_gotoxy(menuindex*3+1,1);
+       switch(key)
+       {
+       case OK:
+        menuindex++;
+        if(menuindex>3)
+         menuindex=0;
+        if(pasang!=0)
+         rotTime+=pasang;
+        pasang=0;
+        break;
+        case CANCEL:
+        menuindex=STATE_ROTATT/10-1;
+        state=STATE_MENU;
+        break;        
+       case UP:
+        pasang+=clockratios[menuindex];
+        break;        
+       case DOWN:
+        pasang-=clockratios[menuindex];
+        break;
+       }
+       break;
+       case STATE_ROTATP:
+        showNormalLine1();
+        clearLine(1);
+        translateTime(rotperiod+pasang,str);
+        lcd_puts(str);
+        lcd_gotoxy(menuindex*3+1,1);
+       switch(key)
+       {
+       case OK:
+        menuindex++;
+        if(menuindex>3)
+         menuindex=0;
+        if(pasang!=0)
+         rotperiod+=pasang;
+        pasang=0;
+        break;
+        case CANCEL:
+        menuindex=STATE_ROTATP/10-1;
+        state=STATE_MENU;
+        break;        
+       case UP:
+        pasang+=clockratios[menuindex];
+        break;        
+       case DOWN:
+        pasang-=clockratios[menuindex];
+        break;
+       }
+       break;
+       
+       case STATE_SYCHK:
+        PORTD=0;
+        clearLine(1);
+        clearLine(0);
+        lcd_puts("OK or CANCEL");
+       switch(key)
+       {
+       case OK:
+        clearLine(0);
+        lcd_puts("Heater ON");
+        Heater(ON);
+        delay_ms(10000);
+        clearLine(0);
+        lcd_puts("Heater OFF");
+        Heater(OFF);
+        delay_ms(10000);
+        clearLine(0);
+        lcd_puts("rotation Left");
+        turn(LEFT);
+        delay_ms(10000);
+        clearLine(0);
+        lcd_puts("rotation Right");
+        turn(RIGHT);
+        delay_ms(10000);
+        lcd_puts("rotation Off");
+        turn(OFF);
+        delay_ms(10000);
+        
+        case CANCEL:
+        menuindex=STATE_SYCHK/10-1;
+        state=STATE_MENU;
+        break;        
+       case UP:
+        lcd_gotoxy(0,0);
+        lcd_puts("Invalid key");
+        break;        
+       case DOWN:
+        lcd_gotoxy(0,0);
+        lcd_puts("Invalid key");
+        break;
+       }
+       break;
+       
+       case STATE_ATEMP1:
+        showNormalLine1();
+        clearLine(1);
+        itoa(temp1+(menuindex==0?pasang:0),str);
+        lcd_puts(str);  
+        
+        lcd_gotoxy(8,1);
+        itoa(temp1analog+(menuindex==1?pasang:0),str);
+        lcd_puts(str);
+        lcd_gotoxy(menuindex*8,1);
+       switch(key)
+       {
+       case OK:
+        if(pasang!=0)
+        {
+         if(menuindex==0)
+          temp1 +=pasang;
+         else
+          temp1analog +=pasang;
+        }
+        menuindex++;
+        if(menuindex>1)
+         menuindex=0;
+        pasang=0;
+        break;
+        case CANCEL:
+        menuindex=STATE_ATEMP1/10-1;
+        state=STATE_MENU;
+        break;        
+       case UP:
+        pasang++;
+        break;        
+       case DOWN:
+        pasang--;
+        break;
+       }
+       break;
+       case STATE_ATEMP2:
+        showNormalLine1();
+        clearLine(1);
+        itoa(temp2+(menuindex==0?pasang:0),str);
+        lcd_puts(str);  
+        
+        lcd_gotoxy(8,1);
+        itoa(temp2analog+(menuindex==1?pasang:0),str);
+        lcd_puts(str);
+        lcd_gotoxy(menuindex*8,1);
+       switch(key)
+       {
+       case OK:
+        if(pasang!=0)
+        {
+         if(menuindex==0)
+          temp2 +=pasang;
+         else
+          temp2analog +=pasang;
+        }
+        menuindex++;
+        if(menuindex>1)
+         menuindex=0;
+        pasang=0;
+        break;
+        case CANCEL:
+        menuindex=STATE_ATEMP1/10-1;
+        state=STATE_MENU;
+        break;        
+       case UP:
+        pasang++;
+        break;        
+       case DOWN:
+        pasang--;
+        break;
+       }
+       break;
+       
        default:
-      }       
-      key=readkey();
-      sprintf(str,"%x",key);
-      lcd_gotoxy(10,1);
-      lcd_puts(str);
-      lcd_puts("   ");
-      delay_ms(500);
+      }
+
+      delay_ms(200);
       }
 }
